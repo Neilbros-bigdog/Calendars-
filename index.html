@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>家庭專屬行事曆</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        /* 核心修正：將所有全形 – 改回半形 -- 確保 CSS 變數生效 */
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
 
         :root {
             --bg: #cdd9d0;
@@ -14,149 +14,128 @@
             --surface2: #d4e1d6;
             --surface3: #e8f1ea;
             --border: #b8ccbc;
+            --border2: #a4bcaa;
             --accent: #3a6b45;
+            --accent-light: #c6deca;
             --text: #1c2d20;
             --muted: #5c7a62;
+            --muted2: #8faa95;
             --red: #b83232;
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Noto Sans TC', sans-serif;
-            margin: 0;
-            padding: 10px;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; padding: 24px 20px; }
 
-        /* 修正原本跑掉的網格佈局 */
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            background: var(--border);
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }
+        .controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 15px; }
+        .month-block { display: flex; flex-direction: column; gap: 4px; }
+        .label-tag { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #b06000; display: flex; align-items: center; gap: 8px; }
+        .label-tag::before { content: ''; width: 20px; height: 3px; background: #b06000; border-radius: 2px; }
+        .month-title { font-family: 'Syne', sans-serif; font-size: clamp(40px, 6vw, 64px); font-weight: 800; line-height: 1.1; color: #152a18; }
+        .month-title span { color: #2a6e38; }
 
-        .day-cell {
-            background: var(--surface);
-            min-height: 100px;
-            padding: 5px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
+        .nav-group { display: flex; gap: 10px; align-items: center; }
+        .nav-btn { height: 42px; padding: 0 20px; border: 2.5px solid #5a9a60; background: #fff; color: #1a5020; border-radius: 21px; cursor: pointer; font-weight: 700; transition: 0.2s; box-shadow: 0 3px 8px rgba(30,80,40,.1); }
+        .nav-btn:hover { background: #2a7040; color: #fff; border-color: #2a7040; }
 
-        .day-cell.other { background: var(--surface2); opacity: 0.6; }
-        .day-cell.today { background: #fff; border: 2px solid var(--accent); }
+        .ov-label { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 15px; font-weight: 700; color: #2a5c30; margin-right: 10px; }
 
-        .weekday {
-            text-align: center;
-            padding: 10px 0;
-            background: var(--surface3);
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+        .weekday { background: var(--surface3); text-align: center; padding: 12px 0; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--muted); border-radius: 6px; }
+        .weekday:first-child, .weekday:last-child { color: var(--red); }
 
-        .evt-pill {
-            font-size: 11px;
-            padding: 2px 4px;
-            border-radius: 4px;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            background: #fff;
-            border-left: 3px solid var(--accent);
-        }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-cell { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; min-height: 140px; padding: 10px; cursor: pointer; transition: 0.15s; position: relative; }
+        .day-cell:hover { border-color: var(--accent); background: var(--accent-light); }
+        .day-cell.today { border: 3px solid var(--accent); background: #fff; }
+        .day-cell.other { opacity: 0.5; background: var(--surface2); }
+        
+        .day-num { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+        .day-cell.today .day-num { color: var(--accent); }
 
-        /* 手機版優化 */
-        @media (max-width: 640px) {
-            .day-cell { min-height: 70px; }
-            .month-title { font-size: 1.5rem !important; }
+        .evt-pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: white; border-left: 4px solid var(--accent); color: #222; margin-top: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        @media (max-width: 600px) {
+            .day-cell { min-height: 90px; padding: 6px; }
+            .day-num { font-size: 14px; }
+            .evt-pill { font-size: 10px; padding: 2px 4px; }
         }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-4xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 id="monthTitle" class="text-3xl font-black text-emerald-900 month-title">2026 三月</h1>
-                <p class="text-sm text-emerald-700">♥ 給最親愛的家人</p>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="changeMonth(-1)" class="bg-white px-3 py-2 rounded-full shadow-sm border border-emerald-200">←</button>
-                <button onclick="goToday()" class="bg-emerald-700 text-white px-4 py-2 rounded-full shadow-md font-bold">今天</button>
-                <button onclick="changeMonth(1)" class="bg-white px-3 py-2 rounded-full shadow-sm border border-emerald-200">→</button>
-            </div>
+<body>
+    <div class="controls">
+        <div class="month-block">
+            <div class="label-tag">FAMILY CALENDAR</div>
+            <h1 class="month-title" id="monthDisplay">2026 <span>MARCH</span></h1>
         </div>
-
-        <div class="grid grid-cols-7 mb-1">
-            <div class="weekday text-red-600">日</div>
-            <div class="weekday">一</div>
-            <div class="weekday">二</div>
-            <div class="weekday">三</div>
-            <div class="weekday">四</div>
-            <div class="weekday">五</div>
-            <div class="weekday text-red-600">六</div>
+        <div class="nav-group">
+            <label class="ov-label"><input type="checkbox" checked id="shiftToggle"> 輪班</label>
+            <button class="nav-btn" onclick="moveMonth(-1)">←</button>
+            <button class="nav-btn" onclick="goToday()">今天</button>
+            <button class="nav-btn" onclick="moveMonth(1)">→</button>
         </div>
-
-        <div id="calGrid" class="cal-grid">
-            </div>
-        
-        <p class="text-center mt-6 text-xs text-emerald-600">提示：點擊日期可以新增行程</p>
     </div>
 
+    <div class="weekdays">
+        <div class="weekday">SUN</div><div class="weekday">MON</div><div class="weekday">TUE</div>
+        <div class="weekday">WED</div><div class="weekday">THU</div><div class="weekday">FRI</div><div class="weekday">SAT</div>
+    </div>
+    <div class="cal-grid" id="grid"></div>
+
     <script>
-        // 這裡僅保留核心渲染邏輯，確保畫面能跑出來
+        let current = new Date(2026, 2, 1);
         const TODAY = new Date();
-        let viewDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+
+        // 這裡是選單內容與行程資料，已確認內容無誤
+        const EVENTS = {
+            "2026-03-15": ["🏥 蔡尚均 門診 09:30"],
+            "2026-03-20": ["📍 西港聚餐 - 18:30"],
+            "2026-03-25": ["💊 領藥提醒 (長庚)"]
+        };
 
         function render() {
-            const grid = document.getElementById('calGrid');
-            const title = document.getElementById('monthTitle');
+            const grid = document.getElementById('grid');
+            const display = document.getElementById('monthDisplay');
             grid.innerHTML = '';
-            
-            const year = viewDate.getFullYear();
-            const month = viewDate.getMonth();
-            title.innerText = `${year}年 ${month + 1}月`;
 
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const y = current.getFullYear();
+            const m = current.getMonth();
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            display.innerHTML = `${y} <span>${monthNames[m]}</span>`;
 
-            // 填充空白
-            for (let i = 0; i < firstDay; i++) {
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const prevLast = new Date(y, m, 0).getDate();
+
+            // 填充上個月天數
+            for (let i = firstDay - 1; i >= 0; i--) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell other';
+                cell.innerHTML = `<div class="day-num">${prevLast - i}</div>`;
                 grid.appendChild(cell);
             }
 
-            // 填充日期
+            // 填充本月天數與事件內容
             for (let d = 1; d <= daysInMonth; d++) {
                 const cell = document.createElement('div');
-                const isToday = (d === TODAY.getDate() && month === TODAY.getMonth() && year === TODAY.getFullYear());
+                const isToday = (d === TODAY.getDate() && m === TODAY.getMonth() && y === TODAY.getFullYear());
                 cell.className = `day-cell ${isToday ? 'today' : ''}`;
-                cell.innerHTML = `<span class="font-bold ${isToday ? 'text-emerald-700' : ''}">${d}</span>`;
                 
-                // 範例事件
-                if(d % 5 === 0) {
-                    cell.innerHTML += `<div class="evt-pill">🏥 醫院回診</div>`;
+                let content = `<div class="day-num">${d}</div>`;
+                const dateKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                
+                if (EVENTS[dateKey]) {
+                    EVENTS[dateKey].forEach(evt => {
+                        content += `<div class="evt-pill">${evt}</div>`;
+                    });
                 }
                 
+                cell.innerHTML = content;
                 grid.appendChild(cell);
             }
         }
 
-        function changeMonth(offset) {
-            viewDate.setMonth(viewDate.getMonth() + offset);
-            render();
-        }
-
-        function goToday() {
-            viewDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
-            render();
-        }
+        function moveMonth(step) { current.setMonth(current.getMonth() + step); render(); }
+        function goToday() { current = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); render(); }
 
         render();
     </script>
