@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>行事曆</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+:root{--bg:#cdd9d0;--sf:#dce8de;--sf2:#d4e1d6;--sf3:#e8f1ea;--bd:#b8ccbc;--bd2:#a4bcaa;--ac:#3a6b45;--acl:#c6deca;--tx:#1c2d20;--mu:#5c7a62;--mu2:#8faa95;--red:#b83232;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC','PingFang TC',sans-serif;min-height:100vh;}
+.page{display:flex;flex-direction:column;min-height:100vh;padding:20px 16px 60px;}
+.controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.month-block{margin-right:auto;}
+.label-tag{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#b06000;display:flex;align-items:center;gap:6px;}
+.label-tag::before{content:'';width:14px;height:2px;background:#b06000;border-radius:2px;}
+.month-title{font-family:'Syne',sans-serif;font-size:clamp(38px,5vw,64px);font-weight:800;line-height:1.1;color:#152a18;}
+.month-title span{color:#2a6e38;}
+.nav-group{display:flex;align-items:center;gap:6px;}
+.nav-btn{height:38px;padding:0 16px;border:2px solid #5a9a60;background:#fff;color:#1a5020;border-radius:20px;cursor:pointer;font-size:14px;font-weight:700;transition:all .15s;}
+.nav-btn:hover{background:#2a7040;color:#fff;border-color:#1a6030;}
+.nav-btn.circle{width:38px;padding:0;border-radius:50%;font-size:17px;}
+.quick-wrap{position:relative;}
+.quick-trigger{display:flex;align-items:center;gap:5px;background:#fff8e6;border:2px solid #d4900a;color:#7a4800;height:38px;padding:0 16px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.quick-trigger:hover,.quick-trigger.open{background:#d4900a;color:#fff;}
+.quick-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:2px solid #d4900a;border-radius:10px;overflow:hidden;z-index:400;min-width:170px;box-shadow:0 8px 24px rgba(180,100,0,.18);}
+.quick-dd.show{display:block;}
+.qopt{padding:12px 18px;font-size:15px;font-weight:500;cursor:pointer;border-bottom:1px solid #f5e0b0;white-space:nowrap;color:#5a3800;}
+.qopt:last-child{border-bottom:none;}
+.qopt:hover{background:#fff3cc;}
+.ov-group{display:flex;gap:12px;align-items:center;}
+.ov-label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:#2a5c30;}
+.ov-label input[type=checkbox]{appearance:none;-webkit-appearance:none;width:19px;height:19px;border-radius:5px;border:2px solid #6aaa72;background:#fff;cursor:pointer;position:relative;transition:all .15s;flex-shrink:0;}
+.ov-label input:checked{background:#2a7040;border-color:#1a5028;}
+.ov-label input:checked::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff;}
+.csg-logo{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:#fff;border:1px solid #b8ccbc;overflow:hidden;flex-shrink:0;padding:1px;}
+.asml-logo{display:inline-flex;align-items:center;justify-content:center;height:20px;width:66px;background:#fff;border:1px solid #b8ccbc;border-radius:3px;overflow:hidden;flex-shrink:0;padding:2px 3px;}
+.cal-wrap{flex:1;}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
+.weekday{background:var(--sf3);text-align:center;padding:9px 0;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--mu);border-radius:4px;}
+.weekday:first-child,.weekday:last-child{color:var(--red);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.day-cell{background:var(--sf);border:1.5px solid var(--bd);border-radius:5px;min-height:clamp(110px,10.5vw,155px);padding:6px 6px 4px;display:flex;flex-direction:column;gap:2px;cursor:pointer;transition:border-color .14s,background .14s;overflow:hidden;}
+.day-cell:hover{border-color:var(--ac);background:var(--acl);}
+.day-cell.other{background:var(--sf2);opacity:.72;}
+.day-cell.other .day-num{color:var(--mu2);}
+.day-cell.weekend .day-num,.day-cell.holiday .day-num{color:var(--red);}
+.day-cell.today{border-color:var(--ac);border-width:2px;}
+.day-cell.today .day-num{background:var(--ac);color:#fff;}
+.cell-head{display:flex;align-items:flex-start;gap:4px;margin-bottom:1px;flex-wrap:wrap;}
+.day-num{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;flex-shrink:0;}
+.hday-badge{display:inline-block;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;line-height:1.5;white-space:nowrap;align-self:center;}
+.lunar{font-size:9px;color:var(--mu);line-height:1.3;}
+.shift-pill{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;flex-shrink:0;white-space:nowrap;}
+.evt-pill{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;flex-shrink:0;color:#1a1a1a;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;}
+.more{font-size:9px;color:var(--mu);padding-left:3px;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(28,45,32,.45);z-index:600;align-items:center;justify-content:center;padding:14px;}
+.overlay.show{display:flex;}
+.modal{background:var(--sf3);border:1.5px solid var(--bd2);border-radius:14px;width:100%;max-width:500px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(28,45,32,.22);animation:fadeUp .2s ease;}
+.modal-hd{padding:16px 20px 12px;border-bottom:1.5px solid var(--bd);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;border-radius:14px 14px 0 0;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;color:var(--tx);}
+.modal-sub{font-size:12px;color:var(--mu);margin-top:3px;}
+.modal-x{background:none;border:none;color:var(--mu);font-size:22px;cursor:pointer;line-height:1;}
+.modal-x:hover{color:var(--red);}
+.modal-body{padding:14px 20px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1;border-radius:0 0 14px 14px;}
+.flabel{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ac);margin-bottom:4px;display:block;}
+.sublabel{font-size:11px;color:var(--mu);margin-bottom:4px;display:block;}
+.finput{width:100%;background:var(--sf);border:1.5px solid var(--bd2);color:var(--tx);padding:9px 12px;border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+.finput:focus{border-color:var(--ac);}
+select.finput{cursor:pointer;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.time-row{display:flex;gap:5px;align-items:center;}
+.time-row select{flex:1;}
+.time-colon{font-size:16px;color:var(--mu);font-weight:700;flex-shrink:0;}
+.color-grid{display:flex;flex-wrap:wrap;gap:5px;}
+.cswatch{width:25px;height:25px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;flex-shrink:0;display:grid;place-items:center;font-size:13px;font-weight:900;}
+.cswatch:hover{transform:scale(1.2);}
+.cswatch.sel{border-color:#333;transform:scale(1.15);}
+.cswatch.sel::after{content:'✓';}
+.evt-list{display:flex;flex-direction:column;gap:3px;}
+.evt-item{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:7px;background:var(--sf);border:1.5px solid var(--bd);cursor:pointer;}
+.evt-item:hover{border-color:var(--ac);background:var(--acl);}
+.ei-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.ei-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ei-meta{font-size:10px;color:var(--mu);flex-shrink:0;}
+.ei-del{background:none;border:none;color:var(--mu2);font-size:19px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0;}
+.ei-del:hover{color:var(--red);}
+.hosp-form{background:var(--sf);border:1.5px solid var(--bd);border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.doc-row{display:flex;gap:7px;align-items:center;}
+.doc-row input{flex:1;}
+.btn-cgmh{display:inline-flex;align-items:center;background:#1a5040;color:#fff;border:none;padding:9px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0;}
+.btn-cgmh:hover{background:#0e3028;}
+.detail-card{background:var(--sf);border-radius:9px;padding:13px;border:1.5px solid var(--bd);}
+.drow{display:flex;gap:9px;margin-bottom:7px;align-items:flex-start;}
+.drow:last-child{margin-bottom:0;}
+.dkey{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--mu);letter-spacing:.09em;min-width:46px;padding-top:2px;}
+.dval{font-size:13px;color:var(--tx);flex:1;}
+.divider{height:1px;background:var(--bd);}
+.btn-ok{width:100%;background:var(--ac);color:#fff;border:none;padding:12px;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-weight:700;font-size:15px;cursor:pointer;flex-shrink:0;}
+.btn-ok:hover{opacity:.87;}
+.btn-del{width:100%;background:transparent;color:var(--mu);border:1.5px solid var(--bd2);padding:10px;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-weight:700;font-size:14px;cursor:pointer;}
+.btn-del:hover{border-color:var(--red);color:var(--red);}
+.range-del-label{display:flex;align-items:flex-start;gap:7px;padding:9px 12px;background:#fff8f0;border:1.5px solid #f0b070;border-radius:8px;cursor:pointer;font-size:12px;color:#7a3800;line-height:1.5;}
+.range-del-label input[type=checkbox]{appearance:none;-webkit-appearance:none;width:17px;height:17px;border-radius:4px;border:2px solid #e08030;background:#fff;cursor:pointer;position:relative;flex-shrink:0;margin-top:1px;}
+.range-del-label input:checked{background:#d06820;border-color:#a04000;}
+.range-del-label input:checked::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;color:#fff;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.map-result-item{padding:11px 16px;border-bottom:1px solid var(–bd);display:flex;align-items:center;gap:10px;transition:background .12s;}
+.map-result-item:last-child{border-bottom:none;}
+.map-result-item:hover{background:var(–acl);}
+.map-result-info{flex:1;min-width:0;}
+.map-result-name{font-size:14px;font-weight:700;color:var(–tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.map-result-addr{font-size:11px;color:var(–mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.map-result-dist{font-size:11px;color:var(–ac);font-weight:700;flex-shrink:0;}
+.map-result-btn{background:var(–ac);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;}
+.map-no-result{padding:24px 16px;text-align:center;color:var(–mu);font-size:13px;line-height:1.7;}
+.map-loading{padding:24px 16px;text-align:center;color:var(–mu);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.map-spinner{width:28px;height:28px;border:3px solid var(–bd);border-top-color:var(–ac);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:600px){.day-cell{min-height:72px;padding:4px 3px;}.day-num{font-size:12px;width:22px;height:22px;}.evt-pill{font-size:8px;}.lunar{display:none;}.controls{gap:8px;}}
+</style>
+
+</head>
+<body>
+<div class="page">
+  <div class="controls">
+    <div class="month-block">
+      <div class="label-tag">行事曆</div>
+      <div class="month-title" id="monthTitle">2026 <span>四月</span></div>
+    </div>
+    <div class="quick-wrap" id="quickWrap">
+      <button class="quick-trigger" id="quickTrigger">★ 常用行程</button>
+      <div class="quick-dd" id="quickDd">
+        <div class="qopt" data-name="醫院門診" data-color="#2e7d6e" data-type="hospital">🏥 醫院門診</div>
+        <div class="qopt" data-name="醫院領藥" data-color="#1a6b5a" data-type="hospital">💊 醫院領藥</div>
+        <div class="qopt" data-name="西港" data-color="#b5860d" data-type="place">📍 西港</div>
+        <div class="qopt" data-name="鳳山" data-color="#b5860d" data-type="place">📍 鳳山</div>
+        <div class="qopt" data-name="聚餐" data-color="#b83232" data-type="dine">🍽 聚餐</div>
+        <div class="qopt" data-name="出遊" data-color="#5c35b0" data-type="trip">🚗 出遊</div>
+      </div>
+    </div>
+    <div class="ov-group">
+      <label class="ov-label">
+        <input type="checkbox" id="ovCsg"/>
+        <span class="csg-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 264"><path fill="rgb(42,111,160)" d="M33.6 99.7v64.7h33v33.5H0V66.2h66.6v33.5zm173.4-33.5v131.7h-66.6v-33.5h33v-64.7h-33V66.2zm-80.6 33.5V33.2h-12.8v70.6l11.2 11 1.6 1.5L160 149.3V264.1H80V131.4l33.6 33v66.5h12.8v-70.6l-11.2-11-1.6-1.5L80 114.8V0h80v132.7z"/></svg></span>
+        <span>中鋼班表</span>
+      </label>
+      <label class="ov-label">
+        <input type="checkbox" id="ovAsml"/>
+        <span class="asml-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1065 300"><g transform="translate(-353.3275,-273.78)"><polygon points="1065.83,566.929 1102.68,388.346 1116.71,566.929 1196.223,566.929 1159.373,283.464 1074.333,283.464 1034.646,453.542 994.964,283.464 909.924,283.464 873.072,566.929 952.443,566.929 966.617,388.346 1003.468,566.929" fill="#0f238c"/><polygon points="1312.442,283.464 1235.907,283.464 1235.907,566.929 1417.324,566.929 1417.324,507.401 1312.442,507.401" fill="#0f238c"/><path d="m535.749,283.464-96.379,0-85.039,283.465 85.04,0 11.338,-51.023 73.701,0 11.339,51.023 85.04,0-85.04,-283.465zm-48.189,62.362 25.512,116.22-51.024,0.001 25.512,-116.221z" fill="#0f238c"/><path d="m824.881,362.835c-70.432,-61.604-180.339,-36.558-181.417,19.843-15.981,-104.645 110.563,-126.492 181.41,-93.544 1.262,16.802 2.527,34.892 0.007,73.701z" fill="#0f238c"/><path d="m766.445,396.213c-17.745,-6.926-43.562,-13.227-43.599,-33.403-0.015,-8.241 3.375,-17.189 19.83,-22.651-56.693,5.669-75.599,74.633-12.896,108.91 10.928,5.974 29.904,12.311 29.904,32.82 0,23.957-26.32,32.617-43.634,32.251-28.761,-0.605-51.885,-10.652-78.256,-29.417l0,68.032c31.207,13.434 82.039,28.928 132.996,13.256 41.183,-12.666 76.768,-47.236 76.768,-84.123 0.002,-60.022-52.091,-74.346-81.113,-85.675z" fill="#0f238c"/></g></svg></span>
+      </label>
+    </div>
+    <div class="nav-group">
+      <button class="nav-btn circle" id="prevBtn">←</button>
+      <button class="nav-btn" id="todayBtn">今天</button>
+      <button class="nav-btn circle" id="nextBtn">→</button>
+    </div>
+  </div>
+  <div class="cal-wrap">
+    <div class="weekdays"><div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div><div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div></div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+<div class="overlay" id="dayModal"><div class="modal">
+  <div class="modal-hd"><div><div class="modal-title" id="mTitle"></div><div class="modal-sub" id="mSub">點擊行程查看詳情</div></div><button class="modal-x" id="mClose">✕</button></div>
+  <div class="modal-body">
+    <div id="existSec" style="display:none"><label class="flabel">已有行程</label><div class="evt-list" id="evtList"></div><div class="divider" style="margin-top:8px;"></div></div>
+    <div><label class="flabel">行程類型</label><select class="finput" id="evtType"><option value="normal">一般行程</option><option value="hospital">🏥 醫院門診</option><option value="medicine">💊 醫院領藥</option></select></div>
+    <div id="nameRow"><label class="flabel">行程名稱</label><input class="finput" id="evtName" placeholder="輸入行程名稱..." autocomplete="off"/></div>
+    <div class="hosp-form" id="hospForm" style="display:none;">
+      <label class="flabel" style="color:#2e7d6e;">醫院門診資訊</label>
+      <div><label class="sublabel">醫院</label><select class="finput" id="hHosp"><option value="">— 選擇醫院 —</option><option value="8">高雄長庚紀念醫院</option><option value="T">高雄市立鳳山醫院</option><option value="other">其他</option></select></div>
+      <div id="hOtherRow" style="display:none;"><label class="sublabel">醫院名稱</label><input class="finput" id="hOtherName" placeholder="請輸入醫院名稱"/></div>
+      <div id="hDeptRow" style="display:none;"><label class="sublabel">科別</label><select class="finput" id="hDept"><option value="">— 選擇科別 —</option></select></div>
+      <div id="hDeptTextRow" style="display:none;"><label class="sublabel">科別</label><input class="finput" id="hDeptText" placeholder="科別（自行輸入）"/></div>
+      <div><label class="sublabel">醫師</label><div class="doc-row"><input class="finput" id="hDoctorText" placeholder="醫師姓名（自行輸入）"/><a id="hDocLink" class="btn-cgmh" href="#" target="_blank" rel="noopener" style="display:none;">🔗 查醫師</a></div></div>
+      <div class="row2"><div><label class="sublabel">看診號碼</label><input class="finput" id="hNum" placeholder="e.g. 18"/></div><div><label class="sublabel">時間</label><div class="time-row"><select class="finput" id="hHr"></select><span class="time-colon">:</span><select class="finput" id="hMn"></select></div></div></div>
+    </div>
+    <div><label class="flabel">日期區間</label><div class="row2"><div><label class="sublabel">開始日期</label><input class="finput" type="date" id="evtS"/></div><div id="evtEWrap"><label class="sublabel">結束日期（選填）</label><input class="finput" type="date" id="evtE"/></div></div></div>
+    <div id="timeRow"><label class="flabel">時間（選填）</label><div class="time-row"><select class="finput" id="evtHr"></select><span class="time-colon">:</span><select class="finput" id="evtMn"></select></div></div>
+    <div id="colorRow"><label class="flabel">顏色（50色）</label><div class="color-grid" id="colorGrid"></div></div>
+    <button class="btn-ok" id="addBtn">＋ 新增行程</button>
+  </div>
+</div></div>
+<div class="overlay" id="detModal"><div class="modal" style="max-width:400px;">
+  <div class="modal-hd"><div><div class="modal-title" id="detTitle"></div><div class="modal-sub" id="detSub"></div></div><button class="modal-x" id="detClose">✕</button></div>
+  <div class="modal-body"><div class="detail-card" id="detCard"></div><div id="detRangeOpt" style="display:none;"><label class="range-del-label"><input type="checkbox" id="detDelRange"/><span>同時刪除整段區間行程（<span id="detRangeSpan"></span>）</span></label></div><button class="btn-del" id="detDel">🗑 刪除此行程</button></div>
+</div></div>
+<div class="overlay" id="quickModal"><div class="modal" style="max-width:420px;">
+  <div class="modal-hd"><div><div class="modal-title" id="qTitle">新增快速行程</div><div class="modal-sub">選擇日期後確認</div></div><button class="modal-x" id="qClose">✕</button></div>
+  <div class="modal-body">
+    <div class="hosp-form" id="qHospForm" style="display:none;">
+      <label class="flabel" style="color:#2e7d6e;">醫院門診資訊</label>
+      <div><label class="sublabel">醫院</label><select class="finput" id="qHosp"><option value="">— 選擇醫院 —</option><option value="8">高雄長庚紀念醫院</option><option value="T">高雄市立鳳山醫院</option><option value="other">其他</option></select></div>
+      <div id="qOtherRow" style="display:none;"><label class="sublabel">醫院名稱</label><input class="finput" id="qOtherName" placeholder="請輸入醫院名稱"/></div>
+      <div id="qDeptRow" style="display:none;"><label class="sublabel">科別</label><select class="finput" id="qDept"><option value="">— 選擇科別 —</option></select></div>
+      <div id="qDeptTextRow" style="display:none;"><label class="sublabel">科別</label><input class="finput" id="qDeptText" placeholder="科別（自行輸入）"/></div>
+      <div><label class="sublabel">醫師</label><div class="doc-row"><input class="finput" id="qDoctorText" placeholder="醫師姓名（自行輸入）"/><a id="qDocLink" class="btn-cgmh" href="#" target="_blank" rel="noopener" style="display:none;">🔗 查醫師</a></div></div>
+      <div class="row2"><div><label class="sublabel">看診號碼</label><input class="finput" id="qNum" placeholder="e.g. 18"/></div><div><label class="sublabel">時間</label><div class="time-row"><select class="finput" id="qHHr"></select><span class="time-colon">:</span><select class="finput" id="qHMn"></select></div></div></div>
+    </div>
+    <div id="qTimeRow" style="display:none;"><label class="flabel">時間（選填）</label><div class="time-row"><select class="finput" id="qHr"></select><span class="time-colon">:</span><select class="finput" id="qMn"></select></div></div>
+    <div id="qPlaceRow" style="display:none;">
+      <label class="flabel">地點</label>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <input class="finput" id="qPlace" placeholder="店名或地點..." style="flex:1;"/>
+        <button id="qMapBtn" onclick="openMapModal()" style="display:inline-flex;align-items:center;gap:4px;background:#1a73e8;color:#fff;border:none;padding:9px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗺 地圖</button>
+      </div>
+    </div>
+    <div id="qDateRow"><label class="flabel">日期</label><input class="finput" type="date" id="qDate"/></div>
+    <div id="qTripDateRow" style="display:none;">
+      <label class="flabel">日期區間</label>
+      <div class="row2">
+        <div><label class="sublabel">開始日期</label><input class="finput" type="date" id="qTripS"/></div>
+        <div><label class="sublabel">結束日期</label><input class="finput" type="date" id="qTripE"/></div>
+      </div>
+    </div>
+    <button class="btn-ok" id="qConfirm">確認新增</button>
+  </div>
+</div></div>
+
+<!-- MAP MODAL -->
+
+<div class="overlay" id="mapModal" style="z-index:700;">
+<div class="modal" style="max-width:480px;max-height:88vh;">
+  <div class="modal-hd">
+    <div>
+      <div class="modal-title" id="mapModalTitle">附近店家</div>
+      <div class="modal-sub" id="mapModalSub">正在取得位置...</div>
+    </div>
+    <button class="modal-x" id="mapClose">✕</button>
+  </div>
+  <div class="modal-body" style="padding:0;gap:0;overflow:hidden;">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;gap:8px;flex-shrink:0;">
+      <input class="finput" id="mapSearchInput" placeholder="修改搜尋關鍵字..." style="flex:1;"/>
+      <button id="mapSearchBtn" style="background:var(--ac);color:#fff;border:none;padding:9px 14px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">搜尋</button>
+    </div>
+    <div id="mapResults" style="overflow-y:auto;max-height:380px;"></div>
+  </div>
+</div>
+</div>
+<script>
+var COLORS=['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#03a9f4','#00bcd4','#009688','#4caf50','#8bc34a','#cddc39','#ffeb3b','#ffc107','#ff9800','#ff5722','#795548','#9e9e9e','#607d8b','#f06292','#ba68c8','#7986cb','#64b5f6','#4dd0e1','#4db6ac','#81c784','#aed581','#fff176','#ffd54f','#ffb74d','#ff8a65','#a1887f','#bdbdbd','#90a4ae','#f48fb1','#ce93d8','#9fa8da','#90caf9','#80deea','#80cbc4','#a5d6a7','#c5e1a5','#e6ee9c','#ffe082','#ffcc80','#ffab91','#bcaaa4','#eeeeee','#b0bec5','#3a6b45'];
+var HOSP={
+  '8':{name:'高雄長庚紀念醫院',base:'https://register.cgmh.org.tw/Department_WEEK/8/',listUrl:'https://www.cgmh.org.tw/tw/Services/DeptList/8',depts:[
+    {g:'內科部',items:[['胃腸肝膽科系','81200A8J120B'],['胸腔內科','81300A8J130A'],['血液腫瘤科','81400A'],['腎臟科','81500A'],['內分泌暨新陳代謝科','81600A'],['心臟血管內科','81700A'],['風濕過敏免疫科','81800A'],['感染醫學科','81A00A']]},
+    {g:'外科部',items:[['一般外科','82100A'],['胸腔及心臟血管外科','82200A'],['腦神經外科','82300A'],['整形外科','82500A'],['泌尿科','82600A'],['大腸直腸外科','82800A'],['外傷科','82900A'],['小兒外科','8B100A']]},
+    {g:'骨科部',items:[['骨科（全部次科）','82700B83V20B'],['脊椎科','82720A'],['關節重建骨科','82730A'],['運動醫學科','82740A'],['骨科系外傷骨科','82750A']]},
+    {g:'婦產部',items:[['婦科','87100A'],['產科','87200A'],['婦癌科','87400A'],['生殖醫學科','87500A']]},
+    {g:'兒童內科部',items:[['兒童胃腸肝膽科','8A200A'],['兒童胸腔內科','8A300A'],['兒童血液腫瘤科','8A400A'],['兒童腎臟科','8A500A'],['兒童遺傳內分泌科','8A600A'],['兒童心臟內科','8A700A'],['兒童過敏氣喘風溼科','8A800A'],['兒童神經內科','8A900A'],['兒童感染科','8AA00A'],['新生兒科','8AC00A']]},
+    {g:'神經內科部',items:[['腦血管科','83730A'],['腦功能暨癲癇科','83740A'],['神經肌肉疾病科','83750A'],['一般神經內科','83770A']]},
+    {g:'精神部',items:[['一般精神科','83650A'],['老年及復健社區精神科','83660A'],['身心醫學科','83670A'],['兒童心智科','83690A']]},
+    {g:'眼科部',items:[['青光眼科','83450A'],['視網膜科','83470A'],['眼角膜科','83480A']]},
+    {g:'耳鼻喉部',items:[['耳科','835C0A'],['鼻科','835D0A'],['喉科','835E0A'],['頭頸部外科','835F0A']]},
+    {g:'牙科部',items:[['一般牙科','8D110A'],['口腔顎面外科','8D140A'],['牙髓病科','8D220A'],['牙周病科','8D230A'],['兒童牙科','8D260A'],['齒顎矯正科','8D270A']]},
+    {g:'中醫部',items:[['中醫一般內科','8C110A'],['中醫針灸科','8C210A'],['中醫骨傷科','8C220A'],['中醫婦兒科','8C300A']]},
+    {g:'其他專科',items:[['皮膚科','83800A'],['復健科','83900A'],['家庭醫學科','83H00A'],['急診醫學科','83W00A'],['放射腫瘤科','83E00A'],['核子醫學科','83F00A']]}
+  ]},
+  'T':{name:'高雄市立鳳山醫院',base:'https://register.cgmh.org.tw/Department_WEEK/T/',listUrl:'https://www.cgmh.org.tw/tw/Services/DeptList/T',depts:[
+    {g:'內科部',items:[['胃腸肝膽科','T1200A'],['胸腔內科','T1300A'],['血液腫瘤科','T1400A'],['腎臟科','T1500A'],['新陳代謝科','T1600A'],['心臟血管內科','T1700A'],['風濕過敏科','T1800A'],['感染醫學科','T1A00A']]},
+    {g:'外科部',items:[['一般外科','T2100A'],['心臟血管外科','T2200A'],['腦神經外科','T2300A'],['整形外科','T2500A'],['泌尿科','T2600A'],['骨科','T2700A'],['直腸肛門科','T2800A']]},
+    {g:'婦產科系',items:[['婦產科系','T7000A']]},
+    {g:'兒童內科',items:[['兒童內科','TA000A']]},
+    {g:'牙科',items:[['牙科','TD000A']]},
+    {g:'其他專科',items:[['眼科','T3440A'],['耳鼻喉科','T3500A'],['精神科','T3600A'],['神經內科','T3700A'],['復健科','T3900A'],['家庭醫學科','T3H00A'],['急診室','T3W00A'],['鳳山中醫科','TC000A']]}
+  ]}
+};
+var HOLIDAYS={
+  '2026-01-01':'元旦',
+  '2026-02-14':'春節補假','2026-02-15':'小年夜','2026-02-16':'除夕',
+  '2026-02-17':'春節','2026-02-18':'春節','2026-02-19':'春節','2026-02-20':'春節補假',
+  '2026-02-27':'和平紀念日補假','2026-02-28':'和平紀念日','2026-03-01':'和平紀念日補假',
+  '2026-04-03':'兒童節補假','2026-04-04':'兒童節','2026-04-05':'清明節','2026-04-06':'清明補假',
+  '2026-05-01':'勞動節','2026-05-02':'勞動節補假','2026-05-03':'勞動節補假',
+  '2026-06-19':'端午節','2026-06-20':'端午節補假','2026-06-21':'端午節補假',
+  '2026-09-25':'中秋節','2026-09-26':'中秋節補假','2026-09-27':'中秋節補假','2026-09-28':'教師節',
+  '2026-10-09':'國慶補假','2026-10-10':'國慶日','2026-10-11':'國慶補假',
+  '2026-10-24':'光復節補假','2026-10-25':'台灣光復節','2026-10-26':'光復節補假',
+  '2026-12-25':'行憲紀念日','2026-12-26':'行憲紀念日補假','2026-12-27':'行憲紀念日補假',
+  '2027-01-01':'元旦','2027-01-02':'元旦補假','2027-01-03':'元旦補假',
+  '2027-02-04':'春節（小年夜）','2027-02-05':'除夕',
+  '2027-02-06':'春節','2027-02-07':'春節','2027-02-08':'春節','2027-02-09':'春節補假','2027-02-10':'春節補假',
+  '2027-02-27':'和平紀念日補假','2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假',
+  '2027-04-03':'兒童節補假','2027-04-04':'兒童節','2027-04-05':'清明節','2027-04-06':'清明補假',
+  '2027-04-30':'勞動節補假','2027-05-01':'勞動節','2027-05-02':'勞動節補假',
+  '2027-06-09':'端午節',
+  '2027-09-15':'中秋節','2027-09-28':'教師節',
+  '2027-10-09':'國慶補假','2027-10-10':'國慶日','2027-10-11':'國慶補假',
+  '2027-10-23':'光復節補假','2027-10-24':'光復節補假','2027-10-25':'台灣光復節',
+  '2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-26':'行憲紀念日補假',
+  '2027-12-31':'2028元旦補假'
+};
+var LD=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+var LM=['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','臘月'];
+var LB=new Date(2026,0,29),LMDAYS=[30,29,30,29,30,29,30,30,29,30,29,30];
+function lunarOf(d){
+  var diff=Math.round((d-LB)/86400000);
+  if(diff<-30)return{txt:''};
+  if(diff<0){var d2=30+diff;return d2>=0?{txt:LD[d2],isFirst:d2===0,month:'臘月'}:{txt:''};}
+  var r=diff,mi=0;
+  while(true){var md=LMDAYS[mi%12]||30;if(r<md)break;r-=md;mi++;if(mi>24)break;}
+  return{txt:LD[Math.min(r,29)],isFirst:r===0,month:LM[mi%12]};
+}
+// 中鋼班表：3/8起 夜5→休2→中5→休1→早5→休2，20天循環
+// pos: 0-4=大夜, 5-6=休, 7-11=中班, 12=休, 13-17=早班, 18-19=休
+var CSG_ANC=new Date(2026,2,8);
+var SN=['大夜','中班','早班'];
+var SC_BG=['rgba(254,240,138,.8)','rgba(254,240,138,.8)','rgba(254,240,138,.8)'];
+var SC_C=['#1a1a1a','#1a1a1a','#1a1a1a'];
+function csgOf(d){
+  var pos=((Math.floor((d-CSG_ANC)/86400000)%20)+20)%20;
+  if(pos<=4)return{work:true,shift:0};
+  if(pos<=6)return{work:false};
+  if(pos<=11)return{work:true,shift:1};
+  if(pos===12)return{work:false};
+  if(pos<=17)return{work:true,shift:2};
+  return{work:false};
+}
+// ASML班表：3/31起 休3→上3，6天循環
+var ASML_ANC=new Date(2026,2,31);
+function asmlOf(d){return{work:((Math.floor((d-ASML_ANC)/86400000)%6)+6)%6>=3};}
+var TODAY=new Date();TODAY.setHours(0,0,0,0);
+var ZHM=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+var cur=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
+var ovCsg=false,ovAsml=false;
+var evts={};try{evts=JSON.parse(localStorage.getItem('cal_v5')||'{}');}catch(e){}
+var selClr=COLORS[0],activeDk=null,detRef=null,pendingQ=null;
+function save(){try{localStorage.setItem('cal_v5',JSON.stringify(evts));}catch(e){}}
+function dk(y,m,d){return y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2);}
+function pdk(k){var p=k.split('-');return{y:+p[0],m:+p[1]-1,d:+p[2]};}
+function fillTime(hId,mId){
+  var h=document.getElementById(hId),m=document.getElementById(mId);if(!h||!m)return;
+  h.innerHTML='<option value="">時</option>';m.innerHTML='<option value="">分</option>';
+  for(var i=0;i<24;i++)h.innerHTML+='<option value="'+('0'+i).slice(-2)+'">'+('0'+i).slice(-2)+'時</option>';
+  for(var i=0;i<60;i+=5)m.innerHTML+='<option value="'+('0'+i).slice(-2)+'">'+('0'+i).slice(-2)+'分</option>';
+}
+['evtHr','evtMn','hHr','hMn','qHHr','qHMn','qHr','qMn'].forEach(function(id,i,a){if(i%2===0)fillTime(a[i],a[i+1]);});
+function lum(hex){var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;var f=function(c){return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
+function buildColors(gId){
+  var g=document.getElementById(gId);g.innerHTML='';
+  COLORS.forEach(function(c){var s=document.createElement('div');s.className='cswatch'+(c===selClr?' sel':'');s.style.background=c;s.style.color=lum(c)>.35?'#1a1a1a':'#fff';s.onclick=(function(col){return function(){selClr=col;g.querySelectorAll('.cswatch').forEach(function(x){x.classList.remove('sel');});s.classList.add('sel');};})(c);g.appendChild(s);});
+}
+function fillDepts(code,selId){
+  var sel=document.getElementById(selId);sel.innerHTML='<option value="">— 選擇科別 —</option>';
+  var h=HOSP[code];if(!h){sel.disabled=true;return;}sel.disabled=false;
+  h.depts.forEach(function(dep){var og=document.createElement('option');og.textContent='── '+dep.g+' ──';og.disabled=true;og.style.cssText='font-weight:700;color:#5c7a62;';sel.appendChild(og);dep.items.forEach(function(item){var op=document.createElement('option');op.value=item[1];op.textContent='\u3000'+item[0];sel.appendChild(op);});});
+}
+function setDocLink(code,deptCode,linkId){
+  var el=document.getElementById(linkId);if(!el)return;
+  var h=HOSP[code];if(!h){el.style.display='none';return;}
+  el.href=deptCode?h.base+deptCode:h.listUrl;el.style.display='';
+}
+document.getElementById('hHosp').onchange=function(){var v=this.value,isO=v==='other',isK=!!HOSP[v];document.getElementById('hOtherRow').style.display=isO?'':'none';document.getElementById('hDeptRow').style.display=isK?'':'none';document.getElementById('hDeptTextRow').style.display=isO?'':'none';if(isK){fillDepts(v,'hDept');setDocLink(v,null,'hDocLink');}else document.getElementById('hDocLink').style.display='none';};
+document.getElementById('hDept').onchange=function(){setDocLink(document.getElementById('hHosp').value,this.value||null,'hDocLink');};
+document.getElementById('qHosp').onchange=function(){var v=this.value,isO=v==='other',isK=!!HOSP[v];document.getElementById('qOtherRow').style.display=isO?'':'none';document.getElementById('qDeptRow').style.display=isK?'':'none';document.getElementById('qDeptTextRow').style.display=isO?'':'none';if(isK){fillDepts(v,'qDept');setDocLink(v,null,'qDocLink');}else document.getElementById('qDocLink').style.display='none';};
+document.getElementById('qDept').onchange=function(){setDocLink(document.getElementById('qHosp').value,this.value||null,'qDocLink');};
+document.getElementById('evtS').onchange=function(){var e=document.getElementById('evtE'),sv=this.value;e.min=sv;if(e.value&&e.value<sv)e.value='';e.dataset.hint=sv;};
+document.getElementById('evtE').onfocus=function(){if(!this.value&&this.dataset.hint){var me=this,v=this.dataset.hint;this.value=v;requestAnimationFrame(function(){me.value='';});}};
+document.getElementById('evtE').onchange=function(){var sv=document.getElementById('evtS').value;if(sv&&this.value&&this.value<sv)this.value=sv;};
+document.getElementById('evtType').onchange=function(){var h=this.value==='hospital'||this.value==='medicine';document.getElementById('nameRow').style.display=h?'none':'';document.getElementById('hospForm').style.display=h?'':'none';document.getElementById('colorRow').style.display=h?'none':'';document.getElementById('timeRow').style.display=h?'none':'';document.getElementById('evtEWrap').style.display=h?'none':'';if(h){selClr=this.value==='medicine'?'#1a6b5a':'#2e7d6e';document.getElementById('hHosp').value='';['hOtherRow','hDeptRow','hDeptTextRow'].forEach(function(id){document.getElementById(id).style.display='none';});document.getElementById('hDocLink').style.display='none';}};
+function evtsFor(key){
+  var p=pdk(key),ts=new Date(p.y,p.m,p.d).getTime(),result=[];
+  (evts[key]||[]).forEach(function(ev,i){result.push({ev:ev,srcKey:key,srcIdx:i,isSpanning:false});});
+  Object.keys(evts).forEach(function(k){if(k===key)return;(evts[k]||[]).forEach(function(ev,i){if(!ev.endDate)return;var s=pdk(k),e2=pdk(ev.endDate);if(ts>=new Date(s.y,s.m,s.d).getTime()&&ts<=new Date(e2.y,e2.m,e2.d).getTime())result.push({ev:ev,srcKey:k,srcIdx:i,isSpanning:true});});});
+  return result;
+}
+function build(){
+  var y=cur.getFullYear(),m=cur.getMonth();
+  document.getElementById('monthTitle').innerHTML=y+' <span>'+ZHM[m]+'</span>';
+  var grid=document.getElementById('calGrid');grid.innerHTML='';
+  var fd=new Date(y,m,1).getDay(),dm=new Date(y,m+1,0).getDate(),dp=new Date(y,m,0).getDate();
+  for(var i=0;i<Math.ceil((fd+dm)/7)*7;i++){
+    var dn,cy=y,cm=m,other=false;
+    if(i<fd){dn=dp-fd+1+i;cm=m-1;if(cm<0){cm=11;cy--;}other=true;}
+    else if(i-fd>=dm){dn=i-fd-dm+1;cm=m+1;if(cm>11){cm=0;cy++;}other=true;}
+    else dn=i-fd+1;
+    var cd=new Date(cy,cm,dn),dow=i%7;
+    var isToday=!other&&dn===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear();
+    var key=dk(cy,cm,dn),hday=HOLIDAYS[key];
+    var cell=document.createElement('div');
+    cell.className='day-cell'+(other?' other':'')+(isToday?' today':'')+(dow===0||dow===6?' weekend':'')+(hday?' holiday':'');
+    (function(a,b,c){cell.onclick=function(){openDay(a,b,c);};})(cy,cm,dn);
+    var head=document.createElement('div');head.className='cell-head';
+    var numEl=document.createElement('div');numEl.className='day-num';numEl.textContent=dn;head.appendChild(numEl);
+    if(hday&&!other){var hb=document.createElement('span');hb.className='hday-badge';hb.textContent=hday;head.appendChild(hb);}
+    cell.appendChild(head);
+    if(!other){var lu=lunarOf(cd);if(lu.txt){var ll=document.createElement('div');ll.className='lunar';ll.textContent=lu.isFirst?lu.month:lu.txt;cell.appendChild(ll);}}
+    if(ovCsg){var ci=csgOf(cd);if(ci.work){var b=document.createElement('div');b.className='shift-pill';b.style.cssText='background:'+SC_BG[ci.shift]+';color:'+SC_C[ci.shift]+';border-left:2px solid #888;';b.textContent=SN[ci.shift];cell.appendChild(b);}}
+    if(ovAsml){var ai=asmlOf(cd);if(ai.work){var ab=document.createElement('div');ab.className='shift-pill';ab.style.cssText='background:rgba(2,132,199,.15);color:#0369a1;border-left:2px solid #0284c7;';ab.textContent='上班';cell.appendChild(ab);}}
+    var dayEvts=evtsFor(key);
+    dayEvts.slice(0,5).forEach(function(obj){var pp=document.createElement('div');pp.className='evt-pill';var icon=obj.ev.name==='醫院領藥'?'💊':'🏥';var hospPart=obj.ev.hospital||(obj.ev.dept?obj.ev.dept:obj.ev.name);var lbl=(obj.ev.type==='hospital')?(icon+hospPart+(obj.ev.dept&&obj.ev.hospital?' '+obj.ev.dept:'')):obj.ev.name;pp.style.cssText='background:'+obj.ev.color+';';pp.textContent=(lbl+(obj.ev.time?' '+obj.ev.time:'')).substring(0,16);cell.appendChild(pp);});
+    if(dayEvts.length>5){var more=document.createElement('div');more.className='more';more.textContent='+'+(dayEvts.length-5)+' 更多';cell.appendChild(more);}
+    grid.appendChild(cell);
+  }
+}
+function resetH(){document.getElementById('hHosp').value='';['hOtherRow','hDeptRow','hDeptTextRow'].forEach(function(id){document.getElementById(id).style.display='none';});document.getElementById('hOtherName').value='';document.getElementById('hDept').innerHTML='<option value="">— 選擇科別 —</option>';document.getElementById('hDeptText').value='';document.getElementById('hDoctorText').value='';document.getElementById('hDocLink').style.display='none';document.getElementById('hNum').value='';document.getElementById('hHr').value='';document.getElementById('hMn').value='';}
+function openDay(y,m,d){
+  activeDk=dk(y,m,d);
+  var mL=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('mTitle').textContent=y+'年 '+mL[m]+' '+d+'日';
+  var hday=HOLIDAYS[activeDk],subEl=document.getElementById('mSub');
+  if(hday)subEl.innerHTML='<span style="color:var(--red);font-weight:700;">🎌 '+hday+'</span><span style="color:var(--mu);"> · 點擊行程查看詳情</span>';
+  else subEl.textContent='點擊行程查看詳情';
+  var ds=dk(y,m,d);
+  document.getElementById('evtS').value=ds;document.getElementById('evtE').value='';document.getElementById('evtE').min=ds;document.getElementById('evtE').dataset.hint=ds;
+  document.getElementById('evtEWrap').style.display='';document.getElementById('evtHr').value='';document.getElementById('evtMn').value='';
+  document.getElementById('evtType').value='normal';document.getElementById('evtName').value='';
+  document.getElementById('nameRow').style.display='';document.getElementById('hospForm').style.display='none';
+  document.getElementById('colorRow').style.display='';document.getElementById('timeRow').style.display='';
+  resetH();selClr=COLORS[0];buildColors('colorGrid');renderExist();
+  document.getElementById('dayModal').classList.add('show');
+  setTimeout(function(){document.getElementById('evtName').focus();},150);
+}
+function renderExist(){
+  var sec=document.getElementById('existSec'),list=document.getElementById('evtList');
+  var all=evtsFor(activeDk);list.innerHTML='';sec.style.display=all.length?'':'none';
+  all.forEach(function(obj){
+    var ev=obj.ev;
+    var item=document.createElement('div');item.className='evt-item';
+    var dot=document.createElement('div');dot.className='ei-dot';dot.style.background=ev.color||'#2e7d6e';
+    var nm=document.createElement('div');nm.className='ei-name';
+    var eicon=ev.name==='醫院領藥'?'💊 ':'🏥 ';
+    nm.textContent=(obj.isSpanning?'↔ ':'')+((ev.type==='hospital')?(eicon+(ev.hospital||'門診')):(ev.name+(ev.place?' @ '+ev.place:'')));
+    var meta=document.createElement('div');meta.className='ei-meta';
+    if(ev.time)meta.textContent=ev.time;
+    if(ev.endDate)meta.textContent=(meta.textContent?meta.textContent+' ':'')+obj.srcKey.replace(/\d{4}-/,'').replace('-','/')+'→'+ev.endDate.replace(/\d{4}-/,'').replace('-','/');
+    var del=document.createElement('button');del.className='ei-del';del.textContent='×';
+    del.onclick=(function(sk,si){return function(e2){e2.stopPropagation();if(evts[sk]){evts[sk].splice(si,1);if(!evts[sk].length)delete evts[sk];}save();renderExist();build();};})(obj.srcKey,obj.srcIdx);
+    item.onclick=(function(sk,si){return function(){openDetail(sk,si,activeDk);};})(obj.srcKey,obj.srcIdx);
+    item.appendChild(dot);item.appendChild(nm);item.appendChild(meta);item.appendChild(del);list.appendChild(item);
+  });
+}
+document.getElementById('addBtn').onclick=function(){
+  var type=document.getElementById('evtType').value,sDate=document.getElementById('evtS').value,eDate=document.getElementById('evtE').value;
+  var hr=document.getElementById('evtHr').value,mn=document.getElementById('evtMn').value,time=(hr&&mn)?hr+':'+mn:'';
+  var ev={color:selClr,time:time,type:type};if(eDate&&eDate>sDate&&type!=='hospital'&&type!=='medicine')ev.endDate=eDate;
+  if(type==='hospital'||type==='medicine'){
+    var hc=document.getElementById('hHosp').value,isO=hc==='other';
+    var hospName=isO?document.getElementById('hOtherName').value.trim():(HOSP[hc]?HOSP[hc].name:'');
+    if(!hospName){alert('請選擇或輸入醫院');return;}
+    var dept='';if(isO)dept=document.getElementById('hDeptText').value.trim();else{var ds2=document.getElementById('hDept');if(ds2.value){var op=ds2.options[ds2.selectedIndex];dept=op?op.textContent.replace(/^\u3000/,'').trim():'';}}
+    var doctor=document.getElementById('hDoctorText').value.trim(),num=document.getElementById('hNum').value.trim();
+    var hhr=document.getElementById('hHr').value,hmn=document.getElementById('hMn').value;
+    var evName=type==='medicine'?'醫院領藥':(pendingQ&&pendingQ.name==='醫院領藥'?'醫院領藥':'醫院門診');
+    ev={color:'#2e7d6e',time:(hhr&&hmn)?hhr+':'+hmn:time,type:'hospital',name:evName,hospital:hospName,dept:dept,doctor:doctor,num:num};
+  }else{var nm2=document.getElementById('evtName').value.trim();if(!nm2){alert('請輸入行程名稱');return;}ev.name=nm2;}
+  var useKey=sDate||activeDk;if(!evts[useKey])evts[useKey]=[];evts[useKey].push(ev);save();
+  if(sDate){var pp=sDate.split('-'),nmm=+pp[1]-1;if(nmm!==cur.getMonth()||+pp[0]!==cur.getFullYear())cur=new Date(+pp[0],nmm,1);}
+  build();closeDay();
+};
+document.getElementById('evtName').onkeydown=function(e){if(e.key==='Enter')document.getElementById('addBtn').click();};
+function closeDay(){document.getElementById('dayModal').classList.remove('show');activeDk=null;}
+document.getElementById('mClose').onclick=closeDay;
+document.getElementById('dayModal').onclick=function(e){if(e.target===e.currentTarget)closeDay();};
+function openDetail(srcKey,srcIdx,clickedKey){
+  var ev=(evts[srcKey]||[])[srcIdx];if(!ev)return;detRef={srcKey:srcKey,srcIdx:srcIdx,clickedKey:clickedKey};
+  var p=pdk(clickedKey||srcKey),mL=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var dicon=ev.name==='醫院領藥'?'💊':'🏥';document.getElementById('detTitle').textContent=(ev.type==='hospital')?(dicon+' '+ev.name):ev.name;
+  document.getElementById('detSub').textContent=p.y+'年 '+mL[p.m]+' '+p.d+'日';
+  var card=document.getElementById('detCard');card.innerHTML='';var rows=[];
+  if(ev.type==='hospital'){if(ev.hospital)rows.push(['醫院',ev.hospital]);if(ev.dept)rows.push(['科別',ev.dept]);if(ev.doctor)rows.push(['醫師',ev.doctor]);if(ev.num)rows.push(['號碼',ev.num]);}else{rows.push(['行程',ev.name]);if(ev.place)rows.push(['地點',ev.place]);}
+  if(ev.time)rows.push(['時間',ev.time]);if(srcKey!==clickedKey||ev.endDate){rows.push(['開始',srcKey]);if(ev.endDate)rows.push(['結束',ev.endDate]);}
+  rows.forEach(function(r){var row=document.createElement('div');row.className='drow';row.innerHTML='<div class="dkey">'+r[0]+'</div><div class="dval">'+r[1]+'</div>';card.appendChild(row);});
+  var isRange=ev.endDate&&ev.endDate!==srcKey;document.getElementById('detDelRange').checked=false;
+  var ro=document.getElementById('detRangeOpt');if(isRange){ro.style.display='';document.getElementById('detRangeSpan').textContent=srcKey+' → '+ev.endDate;}else ro.style.display='none';
+  document.getElementById('detModal').classList.add('show');
+}
+document.getElementById('detClose').onclick=function(){document.getElementById('detModal').classList.remove('show');};
+document.getElementById('detModal').onclick=function(e){if(e.target===e.currentTarget)document.getElementById('detModal').classList.remove('show');};
+document.getElementById('detDel').onclick=function(){
+  if(!detRef)return;var sk=detRef.srcKey,si=detRef.srcIdx,ck=detRef.clickedKey;
+  var ev=(evts[sk]||[])[si];if(!ev)return;
+  var delRange=document.getElementById('detDelRange').checked,isRange=ev.endDate&&ev.endDate!==sk;
+  if(!isRange||delRange){if(evts[sk]){evts[sk].splice(si,1);if(!evts[sk].length)delete evts[sk];}}
+  else{
+    var s=pdk(sk),c=pdk(ck),e2=pdk(ev.endDate);
+    var sTs=new Date(s.y,s.m,s.d).getTime(),cTs=new Date(c.y,c.m,c.d).getTime(),eTs=new Date(e2.y,e2.m,e2.d).getTime();
+    if(evts[sk]){evts[sk].splice(si,1);if(!evts[sk].length)delete evts[sk];}
+    if(cTs>sTs){var bd=new Date(c.y,c.m,c.d-1),bk=dk(bd.getFullYear(),bd.getMonth(),bd.getDate()),evB=Object.assign({},ev);if(bk===sk)delete evB.endDate;else evB.endDate=bk;if(!evts[sk])evts[sk]=[];evts[sk].push(evB);}
+    if(cTs<eTs){var ad=new Date(c.y,c.m,c.d+1),ak=dk(ad.getFullYear(),ad.getMonth(),ad.getDate()),evA=Object.assign({},ev);if(ak===ev.endDate)delete evA.endDate;else evA.endDate=ev.endDate;if(!evts[ak])evts[ak]=[];evts[ak].push(evA);}
+  }
+  save();document.getElementById('detModal').classList.remove('show');renderExist();build();
+};
+document.getElementById('quickTrigger').onclick=function(){document.getElementById('quickDd').classList.toggle('show');this.classList.toggle('open');};
+document.addEventListener('click',function(e){if(!document.getElementById('quickWrap').contains(e.target)){document.getElementById('quickDd').classList.remove('show');document.getElementById('quickTrigger').classList.remove('open');}});
+document.querySelectorAll('.qopt').forEach(function(opt){
+  opt.onclick=function(){
+    pendingQ={name:opt.dataset.name,color:opt.dataset.color,type:opt.dataset.type};
+    document.getElementById('quickDd').classList.remove('show');document.getElementById('quickTrigger').classList.remove('open');
+    document.getElementById('qTitle').textContent='新增「'+pendingQ.name+'」';
+    var t=TODAY;document.getElementById('qDate').value=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
+    var isH=pendingQ.type==='hospital',isTm=pendingQ.type==='time';
+    var isDine=pendingQ.type==='dine',isTrip=pendingQ.type==='trip';
+    document.getElementById('qHospForm').style.display=isH?'':'none';
+    document.getElementById('qTimeRow').style.display=(isTm||isDine)?'':'none';
+    document.getElementById('qPlaceRow').style.display=(isDine||isTrip)?'':'none';
+    document.getElementById('qDateRow').style.display=isTrip?'none':'';
+    document.getElementById('qTripDateRow').style.display=isTrip?'':'none';
+    if(isH){document.getElementById('qHosp').value='';['qOtherRow','qDeptRow','qDeptTextRow'].forEach(function(id){document.getElementById(id).style.display='none';});document.getElementById('qDept').innerHTML='<option value="">— 選擇科別 —</option>';document.getElementById('qDoctorText').value='';document.getElementById('qDocLink').style.display='none';document.getElementById('qNum').value='';document.getElementById('qHHr').value='';document.getElementById('qHMn').value='';}
+    if(isTm||isDine){document.getElementById('qHr').value='';document.getElementById('qMn').value='';}
+    if(isDine||isTrip){document.getElementById('qPlace').value='';}
+    if(isTrip){document.getElementById('qTripS').value=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);document.getElementById('qTripE').value='';}
+    document.getElementById('quickModal').classList.add('show');
+  };
+});
+
+document.getElementById(‘qTripS’).onchange=function(){
+var e=document.getElementById(‘qTripE’);e.min=this.value;if(e.value&&e.value<this.value)e.value=’’;
+};
+document.getElementById(‘qClose’).onclick=function(){document.getElementById(‘quickModal’).classList.remove(‘show’);};
+document.getElementById(‘quickModal’).onclick=function(e){if(e.target===e.currentTarget)document.getElementById(‘quickModal’).classList.remove(‘show’);};
+document.getElementById(‘qConfirm’).onclick=function(){
+var val=document.getElementById(‘qDate’).value;if(!val||!pendingQ)return;
+var pp=val.split(’-’),qy=+pp[0],qm=+pp[1],qd=+pp[2],key=dk(qy,qm-1,qd);
+if(!evts[key])evts[key]=[];var ev={color:pendingQ.color,type:pendingQ.type};
+if(pendingQ.type===‘hospital’){
+var hc=document.getElementById(‘qHosp’).value,isO=hc===‘other’;
+var hospName=isO?document.getElementById(‘qOtherName’).value.trim():(HOSP[hc]?HOSP[hc].name:’’);
+var dept=’’;if(isO)dept=document.getElementById(‘qDeptText’).value.trim();else{var qs=document.getElementById(‘qDept’);if(qs.value){var qop=qs.options[qs.selectedIndex];dept=qop?qop.textContent.replace(/^\u3000/,’’).trim():’’;}}
+var doctor=document.getElementById(‘qDoctorText’).value.trim(),num=document.getElementById(‘qNum’).value.trim();
+var hhr=document.getElementById(‘qHHr’).value,hmn=document.getElementById(‘qHMn’).value;
+ev={color:’#2e7d6e’,type:‘hospital’,name:pendingQ.name,hospital:hospName,dept:dept,doctor:doctor,num:num,time:(hhr&&hmn)?hhr+’:’+hmn:’’};
+} else if(pendingQ.type===‘dine’){
+var qhr=document.getElementById(‘qHr’).value,qmn=document.getElementById(‘qMn’).value;
+var place=document.getElementById(‘qPlace’).value.trim();
+ev.name=pendingQ.name;ev.time=(qhr&&qmn)?qhr+’:’+qmn:’’;if(place)ev.place=place;
+} else if(pendingQ.type===‘trip’){
+var ts=document.getElementById(‘qTripS’).value,te=document.getElementById(‘qTripE’).value;
+var place=document.getElementById(‘qPlace’).value.trim();
+if(!ts){alert(‘請選擇開始日期’);return;}
+ev.name=pendingQ.name;if(place)ev.place=place;
+if(te&&te>ts)ev.endDate=te;
+// 以開始日期為 key
+var pp2=ts.split(’-’);key=dk(+pp2[0],+pp2[1]-1,+pp2[2]);
+if(!evts[key])evts[key]=[];
+evts[key].push(ev);save();cur=new Date(+pp2[0],+pp2[1]-1,1);build();document.getElementById(‘quickModal’).classList.remove(‘show’);
+return;
+} else ev.name=pendingQ.name;
+evts[key].push(ev);save();cur=new Date(qy,qm-1,1);build();document.getElementById(‘quickModal’).classList.remove(‘show’);
+};
+document.getElementById(‘prevBtn’).onclick=function(){cur.setMonth(cur.getMonth()-1);build();};
+document.getElementById(‘nextBtn’).onclick=function(){cur.setMonth(cur.getMonth()+1);build();};
+document.getElementById(‘todayBtn’).onclick=function(){cur=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);build();};
+document.getElementById(‘ovCsg’).onchange=function(){ovCsg=this.checked;build();};
+document.getElementById(‘ovAsml’).onchange=function(){ovAsml=this.checked;build();};
+(function(){var wrap=document.querySelector(’.cal-wrap’),sx=0,sy=0,st=0;wrap.addEventListener(‘touchstart’,function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();},{passive:true});wrap.addEventListener(‘touchend’,function(e){var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<400&&Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)cur.setMonth(cur.getMonth()+1);else cur.setMonth(cur.getMonth()-1);build();}},{passive:true});})();
+
+// ══ 地圖搜尋視窗 ══
+var mapUserLat=null,mapUserLng=null;
+
+function openMapModal(){
+var v=document.getElementById(‘qPlace’).value.trim();
+document.getElementById(‘mapSearchInput’).value=v;
+document.getElementById(‘mapModalTitle’).textContent=‘附近店家’;
+document.getElementById(‘mapModal’).classList.add(‘show’);
+showMapLoading(‘正在取得你的位置…’);
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(
+function(pos){
+mapUserLat=pos.coords.latitude;
+mapUserLng=pos.coords.longitude;
+document.getElementById(‘mapModalSub’).textContent=‘位置已取得’;
+if(v)doMapSearch();else showMapMsg(‘請在上方輸入店名後點搜尋’);
+},
+function(){
+mapUserLat=null;mapUserLng=null;
+document.getElementById(‘mapModalSub’).textContent=‘無法取得位置，將搜尋全台’;
+if(v)doMapSearch();else showMapMsg(‘請在上方輸入店名後點搜尋’);
+},
+{timeout:8000}
+);
+} else {
+mapUserLat=null;mapUserLng=null;
+if(v)doMapSearch();else showMapMsg(‘請在上方輸入店名後點搜尋’);
+}
+}
+
+function showMapLoading(msg){
+var el=document.getElementById(‘mapResults’);
+el.innerHTML=’’;
+var d=document.createElement(‘div’);d.className=‘map-loading’;
+var sp=document.createElement(‘div’);sp.className=‘map-spinner’;
+var tx=document.createElement(‘span’);tx.textContent=msg||‘搜尋中…’;
+d.appendChild(sp);d.appendChild(tx);el.appendChild(d);
+}
+function showMapMsg(msg){
+var el=document.getElementById(‘mapResults’);
+el.innerHTML=’’;
+var d=document.createElement(‘div’);d.className=‘map-no-result’;d.textContent=msg;
+el.appendChild(d);
+}
+
+function doMapSearch(){
+var q=document.getElementById(‘mapSearchInput’).value.trim();
+if(!q){showMapMsg(‘請輸入店名’);return;}
+document.getElementById(‘mapModalTitle’).textContent=‘附近「’+q+’」’;
+showMapLoading(‘搜尋中…’);
+var locHint=mapUserLat?(‘目前位置：緯度’+mapUserLat.toFixed(4)+’，經度’+mapUserLng.toFixed(4)+’。’):’’;
+var prompt=locHint+‘請搜尋附近最近的10個「’+q+’」店家，只回傳 JSON 陣列，格式：[{“name”:“店名”,“address”:“地址”,“distance”:“距離如120m或1.2km”}]，不要任何其他文字或 markdown。’;
+fetch(‘https://api.anthropic.com/v1/messages’,{
+method:‘POST’,
+headers:{‘Content-Type’:‘application/json’},
+body:JSON.stringify({
+model:‘claude-sonnet-4-20250514’,
+max_tokens:1000,
+tools:[{type:‘web_search_20250305’,name:‘web_search’}],
+messages:[{role:‘user’,content:prompt}]
+})
+})
+.then(function(r){return r.json();})
+.then(function(data){
+var text=’’;
+(data.content||[]).forEach(function(b){if(b.type===‘text’)text+=b.text;});
+text=text.trim();
+var arr=null;
+try{
+// Try to find JSON array in response
+var i1=text.indexOf(’[’),i2=text.lastIndexOf(’]’);
+if(i1>=0&&i2>i1)arr=JSON.parse(text.slice(i1,i2+1));
+else arr=JSON.parse(text);
+}catch(ex){arr=null;}
+if(arr&&arr.length)renderMapResults(arr,q);
+else showFallback(q);
+})
+.catch(function(){showFallback(q);});
+}
+
+function showFallback(q){
+var el=document.getElementById(‘mapResults’);el.innerHTML=’’;
+var wrap=document.createElement(‘div’);wrap.className=‘map-no-result’;
+var msg=document.createElement(‘div’);msg.innerHTML=‘無法自動取得店家清單，請手動輸入：’;
+var row=document.createElement(‘div’);row.style.cssText=‘display:flex;gap:6px;margin-top:8px;’;
+var inp=document.createElement(‘input’);inp.className=‘finput’;inp.id=‘mapManualInput’;inp.placeholder=‘輸入店名…’;inp.value=q;inp.style.flex=‘1’;
+var btn=document.createElement(‘button’);btn.style.cssText=‘background:var(–ac);color:#fff;border:none;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;’;
+btn.textContent=‘確認’;
+btn.onclick=function(){var v=document.getElementById(‘mapManualInput’).value.trim();if(v)selectMapPlace(v,’’);};
+row.appendChild(inp);row.appendChild(btn);
+wrap.appendChild(msg);wrap.appendChild(row);el.appendChild(wrap);
+}
+
+function renderMapResults(places,q){
+var el=document.getElementById(‘mapResults’);el.innerHTML=’’;
+if(!places||!places.length){showMapMsg(‘找不到「’+q+’」的店家’);return;}
+places.slice(0,10).forEach(function(p){
+var item=document.createElement(‘div’);item.className=‘map-result-item’;
+var info=document.createElement(‘div’);info.className=‘map-result-info’;
+var nm=document.createElement(‘div’);nm.className=‘map-result-name’;nm.textContent=p.name||’’;
+var addr=document.createElement(‘div’);addr.className=‘map-result-addr’;addr.textContent=p.address||’’;
+info.appendChild(nm);info.appendChild(addr);
+var dist=document.createElement(‘div’);dist.className=‘map-result-dist’;dist.textContent=p.distance||’’;
+var btn=document.createElement(‘button’);btn.className=‘map-result-btn’;btn.textContent=‘選擇’;
+btn.onclick=(function(name){return function(){selectMapPlace(name,’’);};})(p.name||’’);
+item.appendChild(info);item.appendChild(dist);item.appendChild(btn);
+el.appendChild(item);
+});
+}
+
+function selectMapPlace(name){
+if(!name)return;
+document.getElementById(‘qPlace’).value=name;
+document.getElementById(‘mapModal’).classList.remove(‘show’);
+}
+
+document.getElementById(‘mapSearchBtn’).onclick=doMapSearch;
+document.getElementById(‘mapClose’).onclick=function(){document.getElementById(‘mapModal’).classList.remove(‘show’);};
+document.getElementById(‘mapModal’).onclick=function(e){if(e.target===e.currentTarget)document.getElementById(‘mapModal’).classList.remove(‘show’);};
+document.getElementById(‘mapSearchInput’).onkeydown=function(e){if(e.key===‘Enter’)doMapSearch();};
+
+build();
+</script>
+
+</body>
+</html>
