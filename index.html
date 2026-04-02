@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>行事曆測試</title>
+<style>
+body{background:#cdd9d0;font-family:sans-serif;padding:20px;}
+h1{color:#152a18;margin-bottom:16px;}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cell{background:#dce8de;border:1px solid #b8ccbc;border-radius:5px;min-height:80px;padding:6px;font-size:13px;font-weight:700;}
+.head{display:flex;justify-content:space-between;margin-bottom:8px;}
+.wd{background:#e8f1ea;text-align:center;padding:8px;border-radius:4px;font-size:13px;font-weight:700;color:#5c7a62;}
+#msg{background:#fff;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#1c2d20;}
+</style>
+</head>
+<body>
+<div id="msg">載入中...</div>
+<h1 id="title">行事曆</h1>
+<div class="grid">
+  <div class="wd">日</div><div class="wd">一</div><div class="wd">二</div>
+  <div class="wd">三</div><div class="wd">四</div><div class="wd">五</div><div class="wd">六</div>
+</div>
+<div class="grid" id="cal"></div>
+<script>
+var msg = document.getElementById('msg');
+var title = document.getElementById('title');
+var cal = document.getElementById('cal');
+
+try {
+var now = new Date();
+msg.textContent = ‘時間取得成功：’ + now.toLocaleString(‘zh-TW’);
+title.textContent = now.getFullYear() + ’年 ’ + (now.getMonth()+1) + ‘月’;
+
+var y = now.getFullYear(), m = now.getMonth();
+var fd = new Date(y,m,1).getDay();
+var dm = new Date(y,m+1,0).getDate();
+
+for(var i=0; i<fd; i++){
+var d=document.createElement(‘div’);d.className=‘cell’;d.style.opacity=’.3’;cal.appendChild(d);
+}
+for(var i=1; i<=dm; i++){
+var d=document.createElement(‘div’);d.className=‘cell’;
+var isToday=i===now.getDate();
+if(isToday)d.style.cssText=‘background:#3a6b45;color:#fff;border-radius:5px;min-height:80px;padding:6px;font-size:13px;font-weight:700;’;
+d.textContent=i;
+cal.appendChild(d);
+}
+msg.style.background=’#d4f0d4’;
+msg.textContent=‘成功！y=’+y+’ m=’+m+’ fd=’+fd+’ dm=’+dm;
+} catch(e) {
+msg.style.background=’#ffd4d4’;
+msg.textContent=‘錯誤：’+e.message;
+}
+</script>
+
+</body>
+</html>
