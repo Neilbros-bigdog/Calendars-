@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>行事曆</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+:root{--bg:#cdd9d0;--sf:#dce8de;--sf2:#d4e1d6;--sf3:#e8f1ea;--bd:#b8ccbc;--bd2:#a4bcaa;--ac:#3a6b45;--acl:#c6deca;--tx:#1c2d20;--mu:#5c7a62;--mu2:#8faa95;--red:#b83232;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
+.page{display:flex;flex-direction:column;min-height:100vh;padding:20px 16px 60px;}
+.controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.month-block{margin-right:auto;}
+.month-title{font-family:'Syne',sans-serif;font-size:clamp(38px,5vw,64px);font-weight:800;line-height:1.1;color:#152a18;}
+.month-title span{color:#2a6e38;}
+.nav-group{display:flex;align-items:center;gap:6px;}
+.nav-btn{height:38px;padding:0 16px;border:2px solid #5a9a60;background:#fff;color:#1a5020;border-radius:20px;cursor:pointer;font-size:14px;font-weight:700;}
+.nav-btn:hover{background:#2a7040;color:#fff;}
+.nav-btn.circle{width:38px;padding:0;border-radius:50%;font-size:17px;}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
+.weekday{background:var(--sf3);text-align:center;padding:9px 0;font-size:13px;font-weight:700;color:var(--mu);border-radius:4px;}
+.weekday:first-child,.weekday:last-child{color:var(--red);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.day-cell{background:var(--sf);border:1.5px solid var(--bd);border-radius:5px;min-height:clamp(80px,10vw,120px);padding:6px;display:flex;flex-direction:column;gap:2px;cursor:pointer;}
+.day-cell.other{opacity:.5;}
+.day-cell.weekend .day-num{color:var(--red);}
+.day-cell.holiday .day-num{color:var(--red);}
+.day-cell.today .day-num{background:var(--ac);color:#fff;}
+.day-num{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;}
+.hday-badge{display:inline-block;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;line-height:1.5;}
+@media(max-width:600px){.day-cell{min-height:60px;padding:4px;}.day-num{font-size:12px;width:22px;height:22px;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="controls">
+    <div class="month-block">
+      <div class="month-title" id="monthTitle">2026 <span>四月</span></div>
+    </div>
+    <div class="nav-group">
+      <button class="nav-btn circle" id="prevBtn">&#8592;</button>
+      <button class="nav-btn" id="todayBtn">今天</button>
+      <button class="nav-btn circle" id="nextBtn">&#8594;</button>
+    </div>
+  </div>
+  <div class="weekdays">
+    <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
+    <div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+<script>
+var HOLIDAYS={
+  '2026-01-01':'元旦',
+  '2026-02-14':'春節補假','2026-02-15':'小年夜','2026-02-16':'除夕',
+  '2026-02-17':'春節','2026-02-18':'春節','2026-02-19':'春節','2026-02-20':'春節補假',
+  '2026-02-27':'和平紀念日補假','2026-02-28':'和平紀念日','2026-03-01':'和平紀念日補假',
+  '2026-04-03':'兒童節補假','2026-04-04':'兒童節','2026-04-05':'清明節','2026-04-06':'清明補假',
+  '2026-05-01':'勞動節','2026-05-02':'勞動節補假','2026-05-03':'勞動節補假',
+  '2026-06-19':'端午節','2026-06-20':'端午節補假','2026-06-21':'端午節補假',
+  '2026-09-25':'中秋節','2026-09-26':'中秋節補假','2026-09-27':'中秋節補假','2026-09-28':'教師節',
+  '2026-10-09':'國慶補假','2026-10-10':'國慶日','2026-10-11':'國慶補假',
+  '2026-10-24':'光復節補假','2026-10-25':'台灣光復節','2026-10-26':'光復節補假',
+  '2026-12-25':'行憲紀念日','2026-12-26':'行憲紀念日補假','2026-12-27':'行憲紀念日補假',
+  '2027-01-01':'元旦','2027-01-02':'元旦補假','2027-01-03':'元旦補假',
+  '2027-02-04':'春節（小年夜）','2027-02-05':'除夕',
+  '2027-02-06':'春節','2027-02-07':'春節','2027-02-08':'春節','2027-02-09':'春節補假','2027-02-10':'春節補假',
+  '2027-02-27':'和平紀念日補假','2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假',
+  '2027-04-03':'兒童節補假','2027-04-04':'兒童節','2027-04-05':'清明節','2027-04-06':'清明補假',
+  '2027-04-30':'勞動節補假','2027-05-01':'勞動節','2027-05-02':'勞動節補假',
+  '2027-06-09':'端午節','2027-09-15':'中秋節','2027-09-28':'教師節',
+  '2027-10-09':'國慶補假','2027-10-10':'國慶日','2027-10-11':'國慶補假',
+  '2027-10-23':'光復節補假','2027-10-24':'光復節補假','2027-10-25':'台灣光復節',
+  '2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-26':'行憲紀念日補假',
+  '2027-12-31':'2028元旦補假'
+};
+
+var ZHM=[‘一月’,‘二月’,‘三月’,‘四月’,‘五月’,‘六月’,‘七月’,‘八月’,‘九月’,‘十月’,‘十一月’,‘十二月’];
+var TODAY=new Date();TODAY.setHours(0,0,0,0);
+var cur=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
+var evts={};
+try{var _s=localStorage.getItem(‘cal_v5’);if(_s)evts=JSON.parse(_s);}catch(e){}
+
+function save(){try{localStorage.setItem(‘cal_v5’,JSON.stringify(evts));}catch(e){}}
+function dk(y,m,d){return y+’-’+(‘0’+(m+1)).slice(-2)+’-’+(‘0’+d).slice(-2);}
+
+function build(){
+var y=cur.getFullYear(),m=cur.getMonth();
+document.getElementById(‘monthTitle’).innerHTML=y+’ <span>’+ZHM[m]+’</span>’;
+var grid=document.getElementById(‘calGrid’);grid.innerHTML=’’;
+var fd=new Date(y,m,1).getDay(),dm=new Date(y,m+1,0).getDate(),dp=new Date(y,m,0).getDate();
+for(var i=0;i<Math.ceil((fd+dm)/7)*7;i++){
+var dn,cy=y,cm=m,other=false;
+if(i<fd){dn=dp-fd+1+i;cm=m-1;if(cm<0){cm=11;cy–;}other=true;}
+else if(i-fd>=dm){dn=i-fd-dm+1;cm=m+1;if(cm>11){cm=0;cy++;}other=true;}
+else dn=i-fd+1;
+var dow=i%7;
+var isToday=!other&&dn===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear();
+var key=dk(cy,cm,dn),hday=HOLIDAYS[key];
+var cell=document.createElement(‘div’);
+cell.className=‘day-cell’+(other?’ other’:’’)+(isToday?’ today’:’’)+(dow===0||dow===6?’ weekend’:’’)+(hday?’ holiday’:’’);
+var head=document.createElement(‘div’);
+var numEl=document.createElement(‘div’);numEl.className=‘day-num’;numEl.textContent=dn;head.appendChild(numEl);
+if(hday&&!other){var hb=document.createElement(‘span’);hb.className=‘hday-badge’;hb.textContent=hday;head.appendChild(hb);}
+cell.appendChild(head);
+grid.appendChild(cell);
+}
+}
+
+document.getElementById(‘prevBtn’).onclick=function(){cur.setMonth(cur.getMonth()-1);build();};
+document.getElementById(‘nextBtn’).onclick=function(){cur.setMonth(cur.getMonth()+1);build();};
+document.getElementById(‘todayBtn’).onclick=function(){cur=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);build();};
+
+build();
+</script>
+
+</body>
+</html>
